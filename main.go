@@ -9,7 +9,17 @@ import (
 	"github.com/varlog/go-nano/nano"
 )
 
+const (
+	epsillon = 1.e-8
+	dt       = 1.e-3
+	H        = 1.
+)
+
 func main() {
+	fieldStrengthRange := [2]float64{1000, 1500}
 	fmt.Println("Hello!")
-	nano.Nano()
+
+	res, iterCount := nano.Calculate(fieldStrengthRange[0], dt, epsillon)
+	mod := res.Mod()
+	fmt.Printf("%v, %v, %v\n", res, mod, iterCount)
 }
