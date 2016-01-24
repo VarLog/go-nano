@@ -6,7 +6,9 @@ package main
 
 import (
 	"fmt"
+	v "github.com/spate/vectormath"
 	"github.com/varlog/go-nano/nano"
+	"math/rand"
 )
 
 const (
@@ -16,10 +18,13 @@ const (
 )
 
 func main() {
-	fieldStrengthRange := [2]float64{1000, 1500}
-	fmt.Println("Hello!")
+	fieldStrengthRange := [2]float32{1000, 1500}
 
-	res, iterCount := nano.Calculate(fieldStrengthRange[0], dt, epsillon)
-	mod := res.Mod()
-	fmt.Printf("%v, %v, %v\n", res, mod, iterCount)
+	field := &v.Vector3{}
+	v.V3MakeFromElems(field, rand.Float32(), rand.Float32(), rand.Float32())
+	v.V3ScalarMul(field, field, fieldStrengthRange[0])
+
+	res, iterCount := nano.Calculate(field, dt, epsillon)
+
+	fmt.Printf("Field Strength %v; Magnetization %v, Count of the iterations: %v\n", field, res, iterCount)
 }

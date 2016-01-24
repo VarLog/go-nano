@@ -6,6 +6,7 @@ package nano
 
 import (
 	"fmt"
+	v "github.com/spate/vectormath"
 	"math"
 	"math/rand"
 )
@@ -18,38 +19,94 @@ const (
 	GyromagneticRatio = 1.76e+7
 )
 
-func Calculate(fieldStrengthStart, dt, epsillon float64) (result *Vector, iterCount int) {
+func Calculate(field *v.Vector3, dt, epsillon float32) (magnetization *v.Vector3, iterCount int) {
 	rand.Seed(42) // For debug
 
-	volume := (4. / 3.) * math.Pi * math.Pow(Radius, 3.)
-	t := 0.
-	n := rand.Float64()
+	//volume := (4. / 3.) * math.Pi * math.Pow(Radius, 3.)
 
-	fmt.Printf("Nano %v!\n", n)
-	fmt.Printf("Volume %v!\n", volume)
-	fmt.Printf("Time %v\n!", t)
+	//anisotropyAxis := &v.Vector3{}
+	//v.V3MakeFromElems(anisotropyAxis, 0., 0., 1.)
 
-	v := NewVectorRand()
-	return v, 0
-}
+	magnetization = &v.Vector3{}
+	v.V3MakeFromElems(magnetization, rand.Float32(), rand.Float32(), rand.Float32())
 
-type Vector struct {
-	x, y, z float64
-}
+	iterCount = 0
 
-func NewVectorRand() *Vector {
-	v := &Vector{rand.Float64(), rand.Float64(), rand.Float64()}
-	v.Normalize()
-	return v
-}
+	for {
+		v.V3Normalize(magnetization, magnetization)
 
-func (v *Vector) Mod() float64 {
-	return math.Sqrt(math.Pow(v.x, 2.) + math.Pow(v.y, 2.) + math.Pow(v.z, 2.))
-}
+		fieldEffectiveAnisotropy := &v.Vector3{}
+		fieldEffectiveAnisotropy.X = -Damping * magnetization.X
+		fieldEffectiveAnisotropy.Y = -Damping * magnetization.Y
+		fieldEffectiveAnisotropy.Z = 0.
 
-func (v *Vector) Normalize() {
-	mod := v.Mod()
-	v.x /= mod
-	v.y /= mod
-	v.z /= mod
+		fieldEffective := &v.Vector3{}
+		v.V3Add(fieldEffective, fieldEffectiveAnisotropy, field)
+
+		fieldR := &v.Vector3{}
+		{
+			vec := &v.Vector3{}
+			v.V3Cross(vec, fieldEffective, magnetization)
+			vec.X *= Damping
+			vec.Y *= Damping
+			vec.Z *= Damping
+			v.V3Sub(fieldR, fieldEffective, vec)
+		}
+
+		fieldM := fieldR.Length()
+
+		v.V3Normalize(fieldR, fieldR)
+
+		dte := (GyromagneticRatio * fieldM * dt) / (1 + float32(math.Pow(Damping, 2.)))
+
+		res := &v.Vector3{}
+
+		{
+			vec1 := &v.Vector3{}
+			v.V3Copy(vec1, fieldR)
+
+			dot := v.V3Dot(fieldR, magnetization)
+			vec1.X *= dot
+			vec1.Y *= dot
+			vec1.Z *= dot
+
+			dte2 := float32(math.Pow(float64(dte), 2.))
+
+			vec1.X *= dte2
+			vec1.Y *= dte2
+			vec1.Z *= dte2
+
+			vec2 := &v.Vector3{}
+			v.V3Cross(vec2, fieldEffective, magnetization)
+
+			vec2.X *= dte
+			vec2.Y *= dte
+			vec2.Z *= dte
+
+			v.V3Add(res, magnetization, vec1)
+			v.V3Add(res, res, vec2)
+
+			c := 1. / (1. + (dte2 * fieldR.LengthSqr()))
+
+			res.X *= c
+			res.Y *= c
+			res.Z *= c
+		}
+
+		magnetization = res
+		iterCount++
+
+		{
+			vec := &v.Vector3{}
+			v.V3Cross(vec, magnetization, fieldEffective)
+
+			fmt.Printf("Diff %v\n", vec.Length())
+			if vec.Length() <= epsillon {
+				break
+			}
+		}
+	}
+
+	return
+
 }
