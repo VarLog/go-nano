@@ -14,18 +14,17 @@ import (
 const (
 	Anisotropy        = 4000.
 	Saturation        = 800.
-	Damping           = (2. * Anisotropy) / Saturation
+	Damping           = (20. * Anisotropy) / Saturation
 	Radius            = 20.e-7
 	GyromagneticRatio = 1.76e+7
 )
 
 func Calculate(field *v.Vector3, dt, epsillon float32) (magnetization *v.Vector3, iterCount int) {
-	rand.Seed(42) // For debug
 
 	//volume := (4. / 3.) * math.Pi * math.Pow(Radius, 3.)
 
 	//anisotropyAxis := &v.Vector3{}
-	//v.V3MakeFromElems(anisotropyAxis, 0., 0., 1.)
+	//v.V3MakeFromElems(anisotropyAxis, rand.Float32(), rand.Float32(), rand.Float32())
 
 	magnetization = &v.Vector3{}
 	v.V3MakeFromElems(magnetization, rand.Float32(), rand.Float32(), rand.Float32())
@@ -34,6 +33,8 @@ func Calculate(field *v.Vector3, dt, epsillon float32) (magnetization *v.Vector3
 
 	for {
 		v.V3Normalize(magnetization, magnetization)
+
+		//fmt.Printf("magnetization %v\n", magnetization)
 
 		fieldEffectiveAnisotropy := &v.Vector3{}
 		fieldEffectiveAnisotropy.X = -Damping * magnetization.X
@@ -77,7 +78,7 @@ func Calculate(field *v.Vector3, dt, epsillon float32) (magnetization *v.Vector3
 			vec1.Z *= dte2
 
 			vec2 := &v.Vector3{}
-			v.V3Cross(vec2, fieldEffective, magnetization)
+			v.V3Cross(vec2, fieldR, magnetization)
 
 			vec2.X *= dte
 			vec2.Y *= dte
@@ -93,10 +94,21 @@ func Calculate(field *v.Vector3, dt, epsillon float32) (magnetization *v.Vector3
 			res.Z *= c
 		}
 
+		{
+			v.V3Normalize(res, res)
+
+			vec := &v.Vector3{}
+			v.V3Cross(vec, res, magnetization)
+			dot := v.V3Dot(res, magnetization)
+
+			fmt.Printf("res - magnetization %v\n", vec.Length())
+			fmt.Printf("res - magnetization %v\n", dot)
+		}
 		magnetization = res
 		iterCount++
 
 		{
+			v.V3Normalize(fieldEffective, fieldEffective)
 			vec := &v.Vector3{}
 			v.V3Cross(vec, magnetization, fieldEffective)
 

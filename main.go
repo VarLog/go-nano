@@ -12,19 +12,23 @@ import (
 )
 
 const (
-	epsillon = 1.e-8
-	dt       = 1.e-3
-	H        = 1.
+	epsillon = 1.e-4
+	dt       = 1.e-8
+	dH       = 1.
 )
 
 func main() {
 	fieldStrengthRange := [2]float32{1000, 1500}
 
+	rand.Seed(420) // For debug
+
 	field := &v.Vector3{}
 	v.V3MakeFromElems(field, rand.Float32(), rand.Float32(), rand.Float32())
 	v.V3ScalarMul(field, field, fieldStrengthRange[0])
 
+	fmt.Printf("Field Strength %v\n", field)
 	res, iterCount := nano.Calculate(field, dt, epsillon)
 
-	fmt.Printf("Field Strength %v; Magnetization %v, Count of the iterations: %v\n", field, res, iterCount)
+	fmt.Printf("Magnetization %v, Count of the iterations: %v\n", res, iterCount)
+
 }
